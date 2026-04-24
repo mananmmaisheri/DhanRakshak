@@ -230,6 +230,16 @@ async function startServer() {
     res.json(subs);
   });
 
+  app.get('/api/command', (req, res) => {
+    res.json({
+      activeAlerts: [
+        { merchant: 'Uber Double Charge', threatSource: 'Transactional Anomaly', impact: 850.50 },
+        { merchant: 'Amazon Prime Renewal', threatSource: 'Subscription Surge', impact: 1499.00 },
+        { merchant: 'Late Night Shopping', threatSource: 'Impulse Probability', impact: 12500.00 }
+      ]
+    });
+  });
+
   app.get('/api/dependency', (req, res) => {
     res.json({
       centralNode: "Main Checking",
@@ -273,13 +283,23 @@ async function startServer() {
 
   // Vite middleware
   if (process.env.NODE_ENV !== 'production') {
+    console.log('Mode: Development (Vite Middleware)');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    console.log('Mode: Production (Serving Static Files)');
+    const distPath = path.resolve(process.cwd(), 'dist');
+    
+    // Check if dist exists (to avoid confusion during deployment)
+    import('fs').then(fs => {
+      if (!fs.existsSync(distPath)) {
+        console.error('CRITICAL: dist directory not found! Run "npm run build" before starting the server.');
+      }
+    });
+
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
